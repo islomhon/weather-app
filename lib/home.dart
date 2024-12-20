@@ -1,5 +1,7 @@
+import 'dart:convert';
+import 'dart:core'; 
 import 'package:flutter/material.dart';
-
+import 'package:http/http.dart' as http;
 
 class weather_app extends StatefulWidget {
   const weather_app({super.key});
@@ -9,6 +11,66 @@ class weather_app extends StatefulWidget {
 }
 
 class _weather_appState extends State<weather_app> {
+  String location = "";
+  String weather = "";
+  String image = '';
+  String tempMax = ""; // Maksimal harorat
+  String tempMin = ""; // Minimal harorat
+  String Surnise = '';
+  String Sunset = '';
+  String temperature = ""; // Harorat uchun yangi o'zgaruvchi
+
+  String getGreeting() {
+    // Hozirgi vaqtni olish
+    int hour = DateTime.now().hour;
+
+    // Vaqtga qarab xush kelibsiz xabarini chiqarish
+    if (hour >= 1 && hour < 12) {
+      return "Good morning";
+    } else if (hour >= 12 && hour < 18) {
+      return "Good afternoon";
+    } else {
+      return "Good night";
+    }
+  }
+
+
+  Future<void> get() async {
+    String url =
+        "http://api.weatherapi.com/v1/forecast.json?key=40b2851af21546fbbd294943232312&q=kokand&days=2&aqi=yes&alerts=yes";
+    try {
+      // API ga so'rov yuborish
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        // Javobni qayta ishlash
+        Map<String, dynamic> malumot = jsonDecode(response.body);
+        setState(() {
+          location = malumot['location']['name']; // Joylashuv nomini olish
+          image = "http:" + malumot['current']['condition']['icon'];
+          weather = malumot['current']['condition']['text']; // Hozirgi holat
+          tempMax = malumot['forecast']['forecastday'][0]['day']['maxtemp_c']
+              .toString();
+          tempMin = malumot['forecast']['forecastday'][0]['day']['mintemp_c']
+              .toString();
+          Surnise = malumot['forecast']['forecastday'][0]['astro']['sunrise'];
+          Sunset = malumot['forecast']['forecastday'][0]['astro']['sunset'];
+          temperature =
+              malumot['current']['temp_c'].toString(); // Haroratni olish
+        });
+      } else {
+        print("Xato: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Xato: $e");
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    get(); // API dan malumot olish
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -16,7 +78,6 @@ class _weather_appState extends State<weather_app> {
         width: double.infinity,
         child: Stack(
           children: [
-            //animated align: location and string text
             AnimatedAlign(
               child: Padding(
                 padding: const EdgeInsets.all(30.0),
@@ -31,13 +92,13 @@ class _weather_appState extends State<weather_app> {
                           size: 15,
                         ),
                         Text(
-                          "region",
+                          location,
                           style: TextStyle(color: Colors.white, fontSize: 16),
                         ),
                       ],
                     ),
                     Text(
-                      'Good morning!',
+                      getGreeting(),
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 24,
@@ -49,7 +110,6 @@ class _weather_appState extends State<weather_app> {
               alignment: Alignment.topLeft,
               duration: Duration(seconds: 9),
             ),
-
             Center(
               child: Padding(
                 padding: const EdgeInsets.only(top: 100),
@@ -59,14 +119,16 @@ class _weather_appState extends State<weather_app> {
                       width: 250,
                       height: 250,
                       decoration: BoxDecoration(
-                          image: DecorationImage(
-                              image: AssetImage("assets/2.png"))),
+                        image: DecorationImage(
+                            image: AssetImage('assets/2.png'),
+                            fit: BoxFit.cover),
+                      ),
                     ),
                     SizedBox(
                       height: 0,
                     ),
                     Text(
-                      '3c',
+                      '$temperature°C', // Haroratni ko'rsatish
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 50,
@@ -75,7 +137,7 @@ class _weather_appState extends State<weather_app> {
                     Column(
                       children: [
                         Text(
-                          'CLOUDS',
+                          weather,
                           style: TextStyle(fontSize: 24, color: Colors.white),
                         ),
                         Text(
@@ -91,14 +153,14 @@ class _weather_appState extends State<weather_app> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.only(left: 25,right: 25, bottom: 25),
+              padding: const EdgeInsets.only(left: 25, right: 25, bottom: 25),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      //surnise
+                      // Surnise
                       Row(
                         children: [
                           Container(
@@ -112,11 +174,11 @@ class _weather_appState extends State<weather_app> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "Surnise",
+                                "Sunrise",
                                 style: TextStyle(color: Colors.white60),
                               ),
                               Text(
-                                '7:34 AM',
+                                '$Surnise',
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold),
@@ -125,7 +187,7 @@ class _weather_appState extends State<weather_app> {
                           ),
                         ],
                       ),
-                      //sunset
+                      // Sunset
                       Row(
                         children: [
                           Container(
@@ -143,7 +205,7 @@ class _weather_appState extends State<weather_app> {
                                 style: TextStyle(color: Colors.white60),
                               ),
                               Text(
-                                '4:51 PM',
+                                '$Sunset',
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold),
@@ -158,7 +220,7 @@ class _weather_appState extends State<weather_app> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      //surnise
+                      // Temp Max
                       Row(
                         children: [
                           Container(
@@ -176,7 +238,7 @@ class _weather_appState extends State<weather_app> {
                                 style: TextStyle(color: Colors.white60),
                               ),
                               Text(
-                                '3c',
+                                '$tempMax',
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold),
@@ -185,7 +247,7 @@ class _weather_appState extends State<weather_app> {
                           ),
                         ],
                       ),
-                      //sunset
+                      // Temp Min
                       Row(
                         children: [
                           Container(
@@ -203,7 +265,7 @@ class _weather_appState extends State<weather_app> {
                                 style: TextStyle(color: Colors.white60),
                               ),
                               Text(
-                                '3c',
+                                '$tempMin',
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold),
@@ -216,7 +278,7 @@ class _weather_appState extends State<weather_app> {
                   ),
                 ],
               ),
-            )
+            ),
           ],
         ),
         height: double.infinity,
